@@ -11,19 +11,38 @@ public class Main {
     private final static String PASSWORD = System.getenv("DB_PASSWORD");
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
+        System.out.println("Cosa vuoi cercare: ");
+        String userChoice = scan.next();
 
         try(Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)){
             String query = """
                     SELECT countries.name, countries.country_id, regions.name, continents.name FROM countries
                     INNER JOIN regions on countries.region_id = regions.region_id
                     INNER JOIN continents on regions.continent_id = continents.continent_id
+                    WHERE countries.name LIKE ?
                     ORDER BY countries.name;
                     """;
 
-            try(PreparedStatement ps = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)){
-                ResultSet rs = ps.executeQuery(query);
-                while (rs.next()){
-                    System.out.println(rs.getString("countries.name") + "\t" + rs.getString("countries.country_id") + "\t" + rs.getString("regions.name") + "\t" + rs.getString("continents.name"));
+            try(PreparedStatement ps = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+
+                ps.setString(1,"%"+userChoice+"%");
+
+                try(ResultSet rs = ps.executeQuery()){
+
+                    if(!rs.next()){
+                        System.out.println("Non ci sono risultati per " + userChoice);
+                    } else {
+                        rs.beforeFirst();
+                    }
+
+                    while (rs.next()){
+                        String regionName = rs.getString(1);
+                        int countryId = rs.getInt(2);
+                        String continentName = rs.getString(3);
+                        String countryName = rs.getString(4);
+
+                        System.out.println(regionName + " " + countryId + " " + continentName + " " + countryName);
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -54,6 +73,6 @@ public class Main {
          Dopo aver stampato a video l’elenco delle country, chiedere all’utente di inserire l’id di
          una delle country.
         Sulla base di quell’id eseguire ulteriori ricerche su database, che restituiscano:
-        ● tuttelelingueparlateinquellacountry
-        ● lestatistichepiùrecentiperquellacountry
+        ● tutte le lingue parlate in quella country
+        ● le statistiche più recenti per quella country
         Stampare a video i risultati.*/;
